@@ -1,0 +1,10 @@
+- name: Deploy Web App with DB
+  hosts: all
+  become: yes
+  vars_files:
+    - vault/creds.yml
+  roles:
+    - docker
+    - db
+    - web
+    - nginx

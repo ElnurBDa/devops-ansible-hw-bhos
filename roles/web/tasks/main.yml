@@ -1,0 +1,36 @@
+# roles/web/tasks/main.yml
+
+- name: Copy pc_store_management app to the remote server
+  ansible.builtin.copy:
+    src: "../pc_store_management/"
+    dest: "/home/devops/pc_store_management/"
+    remote_src: no
+    owner: devops
+    group: devops
+    mode: '0755'
+
+- name: Build Docker image for pc_store_management app
+  docker_image:
+    name: pc_store_management
+    tag: latest
+    state: present
+    source: build
+    build:
+      path: "/home/devops/pc_store_management"
+
+- name: Run pc_store_management app container
+  docker_container:
+    name: pc_store_management
+    image: pc_store_management:latest
+    state: started
+    restart_policy: always
+    ports:
+      - "5000:5000"
+    env:
+      FLASK_APP: app.py
+      DB_NAME: "{{ DB_NAME }}"
+      DB_USER: "{{ DB_USER }}"
+      DB_PASSWORD: "{{ DB_PASSWORD }}"
+      DB_HOST: "host.docker.internal"
+    etc_hosts:
+      host.docker.internal: "host-gateway"

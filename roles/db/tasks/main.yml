@@ -1,0 +1,81 @@
+- name: Install MySQL server (Debian based)
+  apt:
+    name: mysql-server
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Install MySQL server (RedHat based)
+  yum:
+    name: mysql-server
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install PyMySQL for Python3
+  ansible.builtin.package:
+    name: python3-pymysql
+    state: present
+  become: yes
+
+- name: Ensure MySQL service is running and enabled
+  service:
+    name: mysql
+    state: started
+    enabled: yes
+  become: yes
+
+- name: Configure MySQL to bind to 0.0.0.0
+  lineinfile:
+    path: "/etc/mysql/mysql.conf.d/mysqld.cnf"  # Adjust path if needed
+    regexp: '^bind-address'
+    line: 'bind-address = 0.0.0.0'
+  become: yes
+
+- name: Restart MySQL service
+  service:
+    name: mysql
+    state: restarted
+  become: yes
+
+- name: Set MySQL root password using mysql_native_password
+  mysql_user:
+    name: root
+    host: localhost
+    password: "{{ DB_PASSWORD }}"
+    state: present
+    login_user: root
+    login_password: "{{ DB_PASSWORD }}"
+    login_host: localhost
+    login_port: 3306
+    update_password: on_create
+  become: yes
+
+- name: Create the database
+  mysql_db:
+    name: "{{ DB_NAME }}"
+    state: present
+    login_user: root
+    login_password: "{{ DB_PASSWORD }}"
+    login_host: localhost
+
+- name: Create MySQL user for the app
+  mysql_user:
+    name: "{{ DB_USER }}"
+    password: "{{ DB_PASSWORD }}"
+    priv: "{{ DB_NAME }}.*:ALL"
+    state: present
+    login_user: root
+    login_password: "{{ DB_PASSWORD }}"
+    login_host: localhost
+
+- name: Grant privileges to the user from any host
+  mysql_user:
+    name: "{{ DB_USER }}"
+    host: "%"
+    password: "{{ DB_PASSWORD }}"
+    priv: "{{ DB_NAME }}.*:ALL"
+    state: present
+    login_user: root
+    login_password: "{{ DB_PASSWORD }}"
+    login_host: localhost
+
